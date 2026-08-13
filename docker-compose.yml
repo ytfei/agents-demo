@@ -33,7 +33,7 @@ services:
     command: ["redis-server", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
 
   app:
-    build: .
+    build: ./service
     environment:
       DATABASE_URL: "postgresql://agent:agent_pass@postgres:5432/agent_mem"
       REDIS_URL: "redis://redis:6379/0"

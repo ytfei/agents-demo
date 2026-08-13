@@ -11,8 +11,8 @@
 - uvicorn --workers N 起多进程，吃满多核；瓶颈在 LLM 网关与 DB 池，不在 Python。
 
 运行：
-  uv run agent_service.py
-  # 或生产：uvicorn agent_service:app --workers 16 --host 0.0.0.0 --port 8000
+  uv run -m service.server
+  # 或生产：uvicorn service.server:app --workers 16 --host 0.0.0.0 --port 8000
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from pydantic import BaseModel
 
 import redis.asyncio as aioredis
 
-import presales_agent
+from .agent import get_agent, init_agent
 
 load_dotenv()
 
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     # 启动：编译 agent 单例 + 建立 Postgres 连接池（每个 worker 各一份），
     # 并建立 Redis 连接池（进程级复用）
     global _redis
-    await presales_agent.init_agent()
+    await init_agent()
     _redis = aioredis.from_url(REDIS_URL, decode_responses=True, max_connections=64)
     try:
         yield
@@ -97,7 +97,7 @@ async def _acquire_session_lock(conversation_id: str) -> str:
     if _redis is None:
         return ""
     lock_key = f"lock:conv:{conversation_id}"
-    token = str(os.urandom(8).hex())
+    token = os.urandom(8).hex()
     # SET NX EX：拿锁，TTL 自动释放防死锁
     ok = await _redis.set(lock_key, token, nx=True, ex=SESSION_LOCK_TTL)
     if not ok:
@@ -125,7 +125,7 @@ async def chat(req: ChatRequest, request: Request):
     await _rate_limit(req.user_id)
     token = await _acquire_session_lock(req.conversation_id)
     try:
-        agent = presales_agent.get_agent()
+        agent = get_agent()
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": req.message}]},
             config={
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     workers = int(os.environ.get("WEB_CONCURRENCY", "4"))
     uvicorn.run(
-        "agent_service:app",
+        "service.server:app",
         host="0.0.0.0",
         port=8000,
         workers=workers,

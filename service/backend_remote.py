@@ -1,4 +1,4 @@
-"""远程沙箱 Backend —— 生产环境替代 LocalShellBackend（本机 shell）。
+"""远程沙箱 Backend —— 生产环境替代本地 shell（LocalShellBackend）。
 
 为什么需要：10W 并发下绝不能让所有用户的 skill 脚本在同一台宿主机 shell
 上执行（互相踩踏 + 安全灾难）。用 Daytona 等远程微 VM 隔离执行。
@@ -7,9 +7,7 @@
 的 DaytonaSandbox（方法签名天然对齐）。沙箱实例可复用（构造时创建一次），
 生产环境建议按租户/会话池化，避免每次请求都新建 sandbox。
 
-注意：本文件为「可选生产组件」，presales_agent.build_agent 默认仍用
-LocalShellBackend（demo 友好）。切换到远程沙箱时，把 backend 参数传入
-RemoteSandboxBackend 即可。
+用法：把 build_agent(backend=RemoteSandboxBackend(...)) 传入即可替换本机 shell。
 """
 
 from __future__ import annotations

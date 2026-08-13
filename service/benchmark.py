@@ -1,8 +1,8 @@
 """轻量压测脚本 —— 模拟 N 个并发用户打 /chat。
 
 用法：
-  uv run agent_service.py &           # 先起服务
-  uv run benchmark.py --users 200 --requests 1000
+  uv run -m service.server &          # 先起服务
+  uv run service/benchmark.py --users 200 --requests 1000
 
 依赖：pip install httpx
 不依赖重量级框架，便于在本地快速验证并发模型（单进程 asyncio 客户端）。
