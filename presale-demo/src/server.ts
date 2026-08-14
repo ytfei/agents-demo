@@ -7,6 +7,11 @@ import { Redis } from "ioredis";
 import { config } from "./config.js";
 import { getAgent, initAgent, shutdownAgent } from "./agent.js";
 import { APP_VERSION } from "./version.js";
+import {
+  finalizeSession,
+  startTimeoutScanner,
+  touchSession,
+} from "./session.js";
 
 /**
  * 售前 Agent 生产服务（10W 级并发就绪）。
@@ -71,6 +76,12 @@ async function buildApp(redis: Redis) {
     }
 
     try {
+      // 惰性触发：若该会话之前活跃但已超时未固化，先固化上一段画像再继续本次
+      const { staleConv } = await touchSession(redis, user_id, conversation_id);
+      if (staleConv) {
+        await finalizeSession(redis, staleConv, { reason: "next-request" });
+      }
+
       const agent = getAgent();
       const result = await agent.invoke(
         { messages: [{ role: "user", content: message }] },
@@ -82,6 +93,11 @@ async function buildApp(redis: Redis) {
       );
       const replyMsg =
         result.messages[result.messages.length - 1]?.content ?? "";
+
+      // 每轮兜底：本对话已获得新画像，立即固化（任何结束场景都不丢）
+      // 注意：这会让「收尾指令」也跑一次 LLM，属于代价可控的兜底。
+      await finalizeSession(redis, conversation_id, { reason: "per-turn" });
+
       return { reply: typeof replyMsg === "string" ? replyMsg : String(replyMsg), conversation_id };
     } catch (err) {
       req.log.error(err);
@@ -90,6 +106,17 @@ async function buildApp(redis: Redis) {
       await redis.eval(RELEASE_SCRIPT, 1, lockKey, token);
     }
   });
+
+  // 主动结束：前端在用户离开/关闭/点结束按钮时调用，做最后一次画像固化（幂等）
+  app.post<{ Params: { id: string }; Body: { user_id?: string } }>(
+    "/conversation/:id/end",
+    async (req, reply) => {
+      const convId = req.params.id;
+      const userId = req.body?.user_id ?? "anonymous";
+      const done = await finalizeSession(redis, convId, { reason: "endpoint" });
+      return { conversation_id: convId, finalized: done, user_id: userId };
+    },
+  );
 
   return app;
 }
@@ -106,6 +133,9 @@ async function startWorker() {
   console.log(
     `[worker ${process.pid}] listening on :${config.port} version=${APP_VERSION.label}`,
   );
+
+  // 后台超时扫描：定期固化「超时且未结束」的会话画像
+  startTimeoutScanner(redis, config.sessionScanMs);
 
   const shutdown = async () => {
     await app.close();

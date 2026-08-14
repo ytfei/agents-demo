@@ -18,6 +18,10 @@ export const config = {
   webConcurrency: Number(process.env.WEB_CONCURRENCY ?? 4),
   rateLimitPerUser: Number(process.env.RATE_LIMIT_PER_USER ?? 10),
   sessionLockTtl: Number(process.env.SESSION_LOCK_TTL ?? 30),
+  // 会话超时（秒）：超过该时长无新消息的会话视为结束，触发画像固化
+  sessionTimeoutSec: Number(process.env.SESSION_TIMEOUT_SEC ?? 1800),
+  // 后台扫描间隔（毫秒）
+  sessionScanMs: Number(process.env.SESSION_SCAN_MS ?? 30000),
 
   // LangSmith 可观测性（10W 下建议采样）
   langsmithTracing: (process.env.LANGSMITH_TRACING ?? "false") === "true",

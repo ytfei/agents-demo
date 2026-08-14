@@ -50,6 +50,9 @@ services:
       LANGSMITH_PROJECT: "${LANGSMITH_PROJECT:-PresalesAgent}"
       WEB_CONCURRENCY: "4"
       RATE_LIMIT_PER_USER: "10"
+      SESSION_LOCK_TTL: "30"
+      SESSION_TIMEOUT_SEC: "1800"
+      SESSION_SCAN_MS: "30000"
     depends_on:
       - postgres
       - redis
