@@ -6,6 +6,7 @@ import fastify, { type FastifyRequest } from "fastify";
 import { Redis } from "ioredis";
 import { config } from "./config.js";
 import { getAgent, initAgent, shutdownAgent } from "./agent.js";
+import { APP_VERSION } from "./version.js";
 
 /**
  * 售前 Agent 生产服务（10W 级并发就绪）。
@@ -30,7 +31,14 @@ const RELEASE_SCRIPT = `
 async function buildApp(redis: Redis) {
   const app = fastify({ logger: false });
 
-  app.get("/healthz", async () => ({ status: "ok" }));
+  app.get("/healthz", async () => ({
+    status: "ok",
+    version: APP_VERSION.label,
+    semver: APP_VERSION.semver,
+    channel: APP_VERSION.channel,
+    timestamp: APP_VERSION.timestamp,
+    startedAt: APP_VERSION.startedAt,
+  }));
 
   app.post<{
     Body: { user_id: string; conversation_id: string; message: string };
@@ -95,7 +103,9 @@ async function startWorker() {
   const redis = new Redis(config.redisUrl, { maxRetriesPerRequest: 3 });
   const app = await buildApp(redis);
   await app.listen({ port: config.port, host: "0.0.0.0" });
-  console.log(`[worker ${process.pid}] listening on :${config.port}`);
+  console.log(
+    `[worker ${process.pid}] listening on :${config.port} version=${APP_VERSION.label}`,
+  );
 
   const shutdown = async () => {
     await app.close();
