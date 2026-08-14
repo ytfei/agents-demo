@@ -7,7 +7,12 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "serve": "tsx src/server.ts",
-    "bench": "tsx src/benchmark.ts --users 200 --requests 1000"
+    "bench": "tsx src/benchmark.ts --users 200 --requests 1000",
+    "check": "tsx src/check.ts",
+    "test:up": "docker compose up --build -d && pnpm check",
+    "smoke": "tsx src/smoke.ts",
+    "smoke:fast": "tsx src/smoke.ts --no-llm",
+    "client": "tsx src/client.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.0",

@@ -54,6 +54,9 @@ export async function initAgent(): Promise<void> {
 
   // 2) checkpointer：对话上下文按 configurable.thread_id 隔离（进程安全）
   const checkpointer = new PostgresSaver(_pgPool);
+  // 关键：必须 setup() 创建 checkpoints / checkpoint_writes 等表，
+  // 否则首次调用会报 relation "public.checkpoints" does not exist。
+  await checkpointer.setup();
 
   // 3) backend：/memories/ 路由到按 user_id 隔离的 store；其余用 StateBackend
   const memoryBackend = new StoreBackend({

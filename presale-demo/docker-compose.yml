@@ -38,6 +38,10 @@ services:
       DATABASE_URL: "postgresql://agent:agent_pass@postgres:5432/agent_mem"
       REDIS_URL: "redis://redis:6379/0"
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      # LangSmith 可观测性（默认关闭；开启时需填 LANGSMITH_API_KEY，10W 下建议采样）
+      LANGSMITH_TRACING: "${LANGSMITH_TRACING:-false}"
+      LANGSMITH_API_KEY: "${LANGSMITH_API_KEY:-}"
+      LANGSMITH_PROJECT: "${LANGSMITH_PROJECT:-PresalesAgent}"
       WEB_CONCURRENCY: "4"
       RATE_LIMIT_PER_USER: "10"
     depends_on:
