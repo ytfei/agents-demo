@@ -1,0 +1,52 @@
+# 售前 Agent 生产部署骨架（支撑 10W 级并发）
+#
+# 组件：
+#   postgres  —— checkpoint + 长期记忆（PostgresStore 的底层存储）
+#   redis     —— 会话锁 + 限流
+#   app       —— Node cluster 多 worker（每容器多进程，可横向扩副本）
+#
+# 10W 并发瓶颈在 LLM 网关吞吐与 DB 连接池，不在 Node 进程数。
+# 横向扩容：增加 app 副本（docker compose up --scale app=N），前置 LB。
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent_pass
+      POSTGRES_DB: agent_mem
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=1000"
+      - "-c"
+      - "shared_buffers=512MB"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--maxmemory", "128MB", "--maxmemory-policy", "allkeys-lru"]
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: "postgresql://agent:agent_pass@postgres:5432/agent_mem"
+      REDIS_URL: "redis://redis:6379/0"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      WEB_CONCURRENCY: "4"
+      RATE_LIMIT_PER_USER: "10"
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+    deploy:
+      replicas: 1   # 横向扩容副本数；配合外部 LB 即可线性扩并发
+
+volumes:
+  pgdata:

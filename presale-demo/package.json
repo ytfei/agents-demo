@@ -1,0 +1,31 @@
+{
+  "name": "presale-demo",
+  "version": "1.0.0",
+  "description": "DeepAgents-style presales Agent in TypeScript, designed for 100k concurrent users (deepagents JS + DeepSeek + Postgres + Redis + Fastify).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "serve": "tsx src/server.ts",
+    "bench": "tsx src/benchmark.ts --users 200 --requests 1000"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.0",
+    "@langchain/deepseek": "^1.0.0",
+    "@langchain/langgraph": "^1.4.4",
+    "@langchain/langgraph-checkpoint": "^1.1.2",
+    "@langchain/langgraph-checkpoint-postgres": "^1.0.0",
+    "deepagents": "^1.12.3",
+    "dotenv": "^17.0.0",
+    "fastify": "^5.0.0",
+    "ioredis": "^6.0.0",
+    "pg": "^8.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

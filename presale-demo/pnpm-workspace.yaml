@@ -1,0 +1,7 @@
+# pnpm 11 起，pnpm 配置从这里读取（不再从 package.json 的 "pnpm" 字段）。
+# 允许这些依赖在 install 时执行 postinstall 构建脚本。
+# 注意：pnpm v11 把 v10 的 onlyBuiltDependencies 数组迁移为 allowBuilds 映射。
+# esbuild 是 tsx 的依赖，必须允许其构建脚本，否则 pnpm install 会因
+# [ERR_PNPM_IGNORED_BUILDS] 失败（Docker 构建同样受影响）。
+allowBuilds:
+  esbuild: true
